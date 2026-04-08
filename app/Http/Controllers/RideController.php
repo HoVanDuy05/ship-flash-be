@@ -104,7 +104,14 @@ class RideController extends Controller
     public function show($id)
     {
         $ride = Ride::with(['driver.user', 'vehicleType', 'payment', 'reviews'])
-            ->findOrFail($id);
+            ->find($id);
+
+        if (!$ride) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ride not found'
+            ], 404);
+        }
 
         return response()->json([
             'success' => true,
@@ -118,7 +125,14 @@ class RideController extends Controller
             'reason' => 'required|string',
         ]);
 
-        $ride = Ride::findOrFail($id);
+        $ride = Ride::find($id);
+
+        if (!$ride) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ride not found'
+            ], 404);
+        }
 
         if ($ride->user_id !== $request->user()->id) {
             return response()->json([
