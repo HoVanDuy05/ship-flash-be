@@ -1,47 +1,22 @@
-FROM php:8.2-fpm-alpine
+FROM php:8.2-cli
 
-# Set working directory
-WORKDIR /var/www/html
+WORKDIR /app
 
-# Install system dependencies and PHP extensions
-RUN apk add --no-cache \
-  postgresql-dev \
-  curl \
-  zip \
-  unzip \
-  git \
-  && docker-php-ext-install pdo_pgsql
+RUN apt-get update && apt-get install -y \
+  git unzip libzip-dev libssl-dev libpq-dev \
+  && docker-php-ext-install pdo pdo_pgsql zip \
+  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Composer properly
-RUN curl -sS https://getcomposer.org/installer | php \
-  && mv composer.phar /usr/local/bin/composer \
-  && chmod +x /usr/local/bin/composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy composer files and artisan first for better caching
-COPY composer.json composer.lock artisan ./
-
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-# Copy application files
 COPY . .
 
-# Set permissions
-RUN mkdir -p storage/logs bootstrap/cache \
-  && chown -R www-data:www-data storage \
-  && chown -R www-data:www-data bootstrap/cache \
-  && chmod -R 775 storage \
-  && chmod -R 775 bootstrap/cache
+RUN composer install --no-dev --optimize-autoloader
 
-# Note: Cache will be cleared at runtime when container starts
-# Caching requires proper .env and database connection
+RUN php artisan config:cache || true
+RUN php artisan route:cache || true
+RUN php artisan storage:link || true
 
-# Expose port
-EXPOSE 9000
+EXPOSE 8000
 
-# Start PHP-FPM
-CMD ["php-fpm"]
-
-# Add health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:9000/ping || exit 1
+CMD php artisan serve --host=0.0.0.0 --port=8000
