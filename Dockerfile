@@ -17,8 +17,8 @@ RUN curl -sS https://getcomposer.org/installer | php \
   && mv composer.phar /usr/local/bin/composer \
   && chmod +x /usr/local/bin/composer
 
-# Copy composer files first for better caching
-COPY composer.json composer.lock ./
+# Copy composer files and artisan first for better caching
+COPY composer.json composer.lock artisan ./
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
