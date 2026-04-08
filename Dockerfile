@@ -3,34 +3,45 @@ FROM php:8.2-fpm-alpine
 # Set working directory
 WORKDIR /var/www/html
 
-# Install dependencies
-RUN apk add --no-cache postgresql-dev curl \
+# Install system dependencies and PHP extensions
+RUN apk add --no-cache \
+  postgresql-dev \
+  curl \
+  zip \
+  unzip \
+  git \
   && docker-php-ext-install pdo_pgsql
 
+# Install Composer properly
+RUN curl -sS https://getcomposer.org/installer | php \
+  && mv composer.phar /usr/local/bin/composer \
+  && chmod +x /usr/local/bin/composer
+
+# Copy composer files first for better caching
+COPY composer.json composer.lock ./
+
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
 # Copy application files
-COPY . /var/www/html
+COPY . .
 
 # Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage
-RUN chown -R www-data:www-data /var/www/html/bootstrap/cache
-RUN chown -R www-data:www-data /var/www/html/storage/logs
+RUN mkdir -p storage/logs bootstrap/cache \
+  && chown -R www-data:www-data storage \
+  && chown -R www-data:www-data bootstrap/cache \
+  && chmod -R 775 storage \
+  && chmod -R 775 bootstrap/cache
 
-# Install composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-  && composer install --no-dev --optimize-autoloader --no-interaction
-
-# Clear caches
-RUN php artisan config:clear
-RUN php artisan cache:clear
-RUN php artisan route:clear
-RUN php artisan view:clear
+# Note: Cache will be cleared at runtime when container starts
+# Caching requires proper .env and database connection
 
 # Expose port
-EXPOSE 8000
+EXPOSE 9000
 
-# Start Apache server
+# Start PHP-FPM
 CMD ["php-fpm"]
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8000/api/health || exit 1
+  CMD curl -f http://localhost:9000/ping || exit 1
