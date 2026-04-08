@@ -4,7 +4,7 @@ FROM php:8.2-fpm-alpine
 WORKDIR /var/www/html
 
 # Install dependencies
-RUN apk add --no-cache postgresql-dev \
+RUN apk add --no-cache postgresql-dev curl \
   && docker-php-ext-install pdo_pgsql
 
 # Copy application files
@@ -16,7 +16,8 @@ RUN chown -R www-data:www-data /var/www/html/bootstrap/cache
 RUN chown -R www-data:www-data /var/www/html/storage/logs
 
 # Install composer
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+  && composer install --no-dev --optimize-autoloader --no-interaction
 
 # Clear caches
 RUN php artisan config:clear
