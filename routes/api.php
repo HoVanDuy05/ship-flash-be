@@ -75,6 +75,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/drivers/{driverId}/current-location', [LocationTrackingController::class, 'getDriverLocation']);
     Route::post('/rides/{rideId}/track-location', [LocationTrackingController::class, 'trackRideLocation']);
     Route::get('/rides/{rideId}/locations', [LocationTrackingController::class, 'getRideLocations']);
+
+    // Suggested locations (from user's ride history)
+    Route::get('/locations/suggested', [LocationTrackingController::class, 'getSuggestedLocations']);
+
+    // Hot destinations (popular places)
+    Route::get('/locations/hot', [LocationTrackingController::class, 'getHotDestinations']);
 });
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

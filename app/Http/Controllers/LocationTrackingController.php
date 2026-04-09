@@ -240,4 +240,53 @@ class LocationTrackingController extends Controller
             'data' => $locations
         ]);
     }
+
+    public function getSuggestedLocations(Request $request)
+    {
+        // Get recent destinations from user's ride history
+        $suggested = Ride::where('user_id', $request->user()->id)
+            ->whereNotNull('destination_address')
+            ->select('destination_address as address', 'destination_latitude as latitude', 'destination_longitude as longitude')
+            ->distinct()
+            ->limit(5)
+            ->get()
+            ->map(function ($item, $index) {
+                $icons = ['home', 'briefcase', 'school', 'hospital', 'shopping'];
+                return [
+                    'id' => $index + 1,
+                    'name' => $this->extractLocationName($item->address),
+                    'address' => $item->address,
+                    'icon' => $icons[$index % count($icons)],
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $suggested
+        ]);
+    }
+
+    public function getHotDestinations(Request $request)
+    {
+        // Mock hot destinations - in production this could come from analytics
+        $hot = [
+            ['id' => 1, 'name' => 'Vạn Hạnh Mall', 'image' => 'https://picsum.photos/200/150?random=1', 'tag' => 'Mall hot'],
+            ['id' => 2, 'name' => 'AEON MALL', 'image' => 'https://picsum.photos/200/150?random=2', 'tag' => 'Mall hot'],
+            ['id' => 3, 'name' => 'SC VivoCity', 'image' => 'https://picsum.photos/200/150?random=3', 'tag' => 'Mall hot'],
+            ['id' => 4, 'name' => 'Landmark 81', 'image' => 'https://picsum.photos/200/150?random=4', 'tag' => 'Điểm đến'],
+            ['id' => 5, 'name' => 'Chợ Bến Thành', 'image' => 'https://picsum.photos/200/150?random=5', 'tag' => 'Chợ'],
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => $hot
+        ]);
+    }
+
+    private function extractLocationName($address)
+    {
+        // Extract a simple name from address
+        $parts = explode(',', $address);
+        return trim($parts[0]) ?: 'Địa điểm';
+    }
 }
